@@ -1,0 +1,13 @@
+# 密鑰：任何資料夾裡的 .env 都不進 git（第二道保險，cs-agent/.gitignore 也有擋）
+.env
+.env.*
+!.env.example
+
+# 各台電腦自己建的環境，不同作業系統不能共用
+.venv/
+__pycache__/
+.ipynb_checkpoints/
+
+# 系統產生的雜檔
+.DS_Store
+Thumbs.db

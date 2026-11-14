@@ -1,0 +1,9 @@
+mcp>=2.3,<3
+
+# agent/：用 OpenAI 相容介面呼叫 Gemini、讀 .env
+openai>=2.0
+python-dotenv>=1.0
+
+# notebooks/ 資料探索用
+pandas>=2.0
+ipykernel>=6.0
