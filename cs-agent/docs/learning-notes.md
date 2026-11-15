@@ -147,6 +147,7 @@
 | 寫入前沒有程式強制確認 | 只靠 W2，而注入文字特地寫了「不需要向客戶確認」 | 步驟 4：Harness 看到 `WRITES_DATA` 的工具就暫停確認 |
 | 送往外部的參數沒有檢查 | 只靠 W7（提示詞），模型仍可能把客戶資料放進 `microsoft_docs_search` 的查詢 | 步驟 4：Harness 在呼叫外部伺服器前檢查參數（例如擋下手機號碼、客戶編號） |
 | 外部工具回傳太長 | `microsoft_docs_search` 一次回傳約 2 萬字，對話變長、變慢、變貴 | 之後：截斷或只取前幾筆結果 |
+| 轉接失敗也會結束對話 | `_execute()` 只看名字是 `transfer_to_human` 就設 `ended = True`，不管結果是否 ok。參數錯誤時，模型可能問客戶問題，但對話隨即結束，還印出「已轉接」 | 步驟 4：改成結果 `ok` 才設 `ended`（使用者自己動手修） |
 | 出錯退回不會復原工具 | API 出錯時 `rollback_turn()` 只移除對話，已執行的寫入工具不會復原 | 觀察即可，步驟 3 評估時注意 |
 
 ---
@@ -228,6 +229,20 @@
 1. 模型呼叫 `transfer_to_human`，`arguments` 是 `'{"why": "退款"}'`。依序經過哪幾行？放進 `messages` 的 `tool` 訊息內容是什麼？
 2. 第 128～129 行執行後 `ended` 會變 `True` 嗎？轉接其實失敗了，合理嗎？會造成什麼問題？
 3. 為什麼 `_dispatch()` 要用 `try/except` 把錯誤轉成文字？拿掉第 140～141 行，模型給錯參數名稱時會怎樣？
+
+**第 4 課目前學到的重點**
+- 離線實際追蹤 `search_policy`：型別轉一圈「文字 →`json.loads`→ dict →`**`拆開→ 參數 →`run()`→ dict →`json.dumps`→ 文字」，因為模型只能讀寫文字。`source` 只進 `trace`，不進 `messages`。
+- `trace` 是 Agent 記憶體裡的列表（不寫檔），評估程式在同一個程式裡直接讀；記錄所有工具（含內建、含失敗）。`audit_log` 是伺服器寫進資料庫的。
+- 拿掉第 140～141 行：`TypeError` 一路丟到 `main.py`（只接 `APIStatusError`），整個程式當掉，第 125 行也不會執行（使用者自己發現 trace 不會記錄）。
+- **誤解修正**：
+  - 第 1 題漏看 `why` 是錯的參數名稱，以為 `run()` 會成功回傳「已轉接」。實際是 `TypeError` 被第 140 行接住。
+  - 以為 `ended = True` 會立刻停止這次 `respond()`。其實 `for` 迴圈不檢查 `ended`，工具結果照樣加入、模型照樣再被呼叫；`ended` 是在 `main.py:49` 的 `while not agent.ended` 才生效。
+- 發現 bug：轉接失敗也會結束對話（已記進第四節弱點表）。
+
+**第 4 課補充題（下次從作答開始）**：轉接成功（`{"reason": "客戶要求規則以外的退款"}`），`run()` 回傳「請用一兩句話告知客戶已轉接…」。
+1. 第 129 行設 `ended = True` 後，這次 `respond()` 還會再呼叫模型幾次？
+2. 客戶看得到那句「已轉接」的告知嗎？為什麼？
+
 - 第 4 課教完後要補 **`core.py` 區塊總表**（含 `ToolCall` / `trace`、`rollback_turn()`、`_report_model_call()`）。
 
 **環境備註（Windows）**：VS Code 使用者設定已關閉 Python 檔的 inlay hints（Pylance 疊在畫面上的灰色型別提示，例如 `dict[Any, Any]`）。
