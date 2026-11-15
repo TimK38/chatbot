@@ -219,9 +219,12 @@
 - `run()` 的回傳值變成 `tool` 訊息，所以也能拿來指示模型。
 - **誤解修正**：`SCHEMA` 只是說明，不是鎖，模型不一定照做，專案裡也沒有程式拿它檢查參數。傳 `{}` 時是 Python 的 `run(reason)` 因缺參數丟出 `TypeError`，不是 `SCHEMA` 擋下的。
 
-**第 3 課補充題（下次從作答開始）**：模型傳 `{"reason": ""}`（空字串）。
-1. `SCHEMA` 會擋嗎？`run(reason: str)` 會出錯嗎？
-2. 要確保「轉接原因不能是空的」，檢查該寫在哪？為什麼不能只在 `description` 寫「不可為空」？
+- 第一道補充題（`{"reason": ""}`）：答對「`SCHEMA` 不擋」「檢查要寫在程式裡」。**誤解修正**：以為 Python 會因空字串出錯。其實型別標註 `reason: str` 也只是說明，執行時不檢查；Python 只會擋「參數名稱或個數不對」。內容檢查要自己寫（用 `.strip()`、`isinstance`，錯誤回傳 `{"ok": False}` 不要 raise）。
+
+**第 3 課第二道補充題（下次從作答開始）**：以下各會出錯還是正常執行？擋下的是 `SCHEMA`、Python，還是都沒擋？
+1. `run(reason="客戶要求退款")`
+2. `run(why="客戶要求退款")`
+3. `run(reason=["退款", "超過 14 天"])`
 
 **環境備註（Windows）**：VS Code 使用者設定已關閉 Python 檔的 inlay hints（Pylance 疊在畫面上的灰色型別提示，例如 `dict[Any, Any]`）。
 
