@@ -180,7 +180,7 @@
 | 0 | 全貌 | 整個 `agent/` | 打一句話進去後，依序經過哪些地方？ | ✅ 2026-11-14 |
 | 1 | `messages` 列表 | `core.py` | 模型沒有記憶，怎麼「記得」前面的對話？ | ✅ 2026-11-14 |
 | 2 | 核心迴圈 | `core.py` `respond()` | 什麼時候該繼續呼叫模型，什麼時候該停？ | ✅ 2026-11-14 |
-| 3 | 工具定義 | `tools/` 的 `SCHEMA` | 模型怎麼知道有哪些工具、怎麼傳參數？ | ⬜ |
+| 3 | 工具定義 | `tools/` 的 `SCHEMA` | 模型怎麼知道有哪些工具、怎麼傳參數？ | ⏳ 補充題已出，**還沒作答** |
 | 4 | 執行工具 | `core.py` `_execute()` | 模型說要用工具後，誰去執行？出錯怎麼辦？ | ⬜ |
 | 5 | 三個內建工具 | `search_policy`、`load_skill`、`transfer` | Skills 的漸進式揭露在程式裡長什麼樣子？ | ⬜ |
 | 6 | MCP 用戶端 | `mcp_client.py` | 外部伺服器的工具怎麼變成模型看得到的工具？（stdio vs HTTP） | ⬜ |
@@ -209,7 +209,21 @@
 - 一次回應要求 N 個工具 → 加 1 筆 `assistant`（含 N 個 tool_calls）＋ N 筆 `tool`。口訣：**先有「要」，才有「給」**。
 - **誤解修正**：第 63 行在迴圈外，每次 `respond()` 只檢查一次，判斷的是「對話還能不能繼續」，不是「這一圈要不要繼續」。
 
-**教學方式待確認**：使用者問能不能像 `server.py` 一樣逐段說明。提議 A：照流程上課，每個檔案教完補一張區塊總表（沒教到的當場補，例如 `core.py` 的 `trace`、`rollback_turn()`、`_report_model_call()`，`main.py` 的 `chat()` / `print_event()`）。等使用者選 A / B（改回逐段）/ C（維持現狀）後開始第 3 課。
+**教學方式（使用者選 A）**：照流程上課，**每個檔案教完補一張區塊總表**（像 `server.py` 那樣），沒教到的段落當場補講。已知會漏的：`core.py` 的 `ToolCall` / `trace`、`rollback_turn()`、`_report_model_call()`（第 4 課後補 `core.py` 總表）；`main.py` 的 `chat()` / `print_event()`（第 7 課）。
+
+**第 3 課目前學到的重點**
+- 工具說明書（`SCHEMA`）= `name` + `description` + `parameters`（JSON Schema）。模型只看得到說明書，看不到 `run()`。
+- `description` 就是提示詞：要寫「做什麼」，也要寫「什麼時候用、什麼情況改用別的工具」（例如「價格請用 list_plans」）。
+- 內建工具用 `SCHEMA`，MCP 工具用 `to_openai()` 轉成同樣格式，模型分不出來源。工具清單每次呼叫都重送，且固定不變（KV Cache）。
+- 模型要用工具時給的 `arguments` 是一段**字串**（模型寫出來的 JSON 文字），不是驗證過的資料。
+- `run()` 的回傳值變成 `tool` 訊息，所以也能拿來指示模型。
+- **誤解修正**：`SCHEMA` 只是說明，不是鎖，模型不一定照做，專案裡也沒有程式拿它檢查參數。傳 `{}` 時是 Python 的 `run(reason)` 因缺參數丟出 `TypeError`，不是 `SCHEMA` 擋下的。
+
+**第 3 課補充題（下次從作答開始）**：模型傳 `{"reason": ""}`（空字串）。
+1. `SCHEMA` 會擋嗎？`run(reason: str)` 會出錯嗎？
+2. 要確保「轉接原因不能是空的」，檢查該寫在哪？為什麼不能只在 `description` 寫「不可為空」？
+
+**環境備註（Windows）**：VS Code 使用者設定已關閉 Python 檔的 inlay hints（Pylance 疊在畫面上的灰色型別提示，例如 `dict[Any, Any]`）。
 
 ### 待讀
 
