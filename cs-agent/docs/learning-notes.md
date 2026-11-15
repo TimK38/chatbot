@@ -182,7 +182,8 @@
 | 1 | `messages` 列表 | `core.py` | 模型沒有記憶，怎麼「記得」前面的對話？ | ✅ 2026-11-14 |
 | 2 | 核心迴圈 | `core.py` `respond()` | 什麼時候該繼續呼叫模型，什麼時候該停？ | ✅ 2026-11-14 |
 | 3 | 工具定義 | `tools/` 的 `SCHEMA` | 模型怎麼知道有哪些工具、怎麼傳參數？ | ✅ 2026-11-15 |
-| 4 | 執行工具 | `core.py` `_execute()` | 模型說要用工具後，誰去執行？出錯怎麼辦？ | ⏳ 題目已出，**還沒作答** |
+| 4 | 執行工具 | `core.py` `_execute()` | 模型說要用工具後，誰去執行？出錯怎麼辦？ | ✅ 2026-11-15 |
+| 4.5 | `core.py` 區塊總表 | `core.py` 全檔 | 補教 `rollback_turn()`、`_report_model_call()` | ⏳ 題目已出，**還沒作答** |
 | 5 | 三個內建工具 | `search_policy`、`load_skill`、`transfer` | Skills 的漸進式揭露在程式裡長什麼樣子？ | ⬜ |
 | 6 | MCP 用戶端 | `mcp_client.py` | 外部伺服器的工具怎麼變成模型看得到的工具？（stdio vs HTTP） | ⬜ |
 | 7 | 系統提示詞與組裝 | `prompts/system.md`、`main.py`、`config.py` | 規則寫在提示詞裡，為什麼「不是鎖」？ | ⬜ |
@@ -241,11 +242,26 @@
 - **提前補了 `main.py` 的一小段**（第 7 課會完整教）：`while not agent.ended`（49）→ `input`（51）→ `respond()`（60）→ `print` 回覆（68）→ 迴圈結束後印「（已轉接真人客服，對話結束）」（74）。`main.py` 在讀下一句輸入**之前**就檢查 `ended`，所以 `core.py:63-64` 在 `main.py` 裡不會被觸發；它是給其他呼叫者（例如評估程式）的第二道保險（縱深防禦）。
 - 使用者合理地以為「要等客戶輸入第二句才會跳出 core.py:64 的錯誤」，是因為當時還沒教 `main.py`（**教學疏失：批改時用了沒教過的檔案**）。
 
-**第 4 課補充題（下次從作答開始）**：轉接成功（`{"reason": "客戶要求規則以外的退款"}`），`run()` 回傳「請用一兩句話告知客戶已轉接…」。
-1. 第 129 行設 `ended = True` 後，這次 `respond()` 還會再呼叫模型幾次？
-2. 客戶看得到那句「已轉接」的告知嗎？請依序說出它經過 `main.py` 的哪幾行。
+- 補充題：答對「`ended = True` 後模型還會再被呼叫一次」，**第 4 課通過**。第 2 題（經過 `main.py` 哪幾行）**已取消**：使用者指出 `main.py` 還沒教，要考就先教。→ **`main.py` 的題目一律等第 7 課教完再出。**
 
-- 第 4 課教完後要補 **`core.py` 區塊總表**（含 `ToolCall` / `trace`、`rollback_turn()`、`_report_model_call()`）。
+**`core.py` 區塊總表**
+
+| 區塊 | 行號 | 內容 | 狀態 |
+|---|---|---|---|
+| ① 開頭 | 1-24 | 說明、import、`EventHandler` | 第 7 課 |
+| ② `ToolCall` | 27-33 | 一次工具呼叫的紀錄 | ✅ 第 4 課 |
+| ③ `build_system_prompt()` | 36-38 | 讀系統提示詞，填入 Skills 目錄 | 第 5、7 課 |
+| ④ `Agent` 欄位 + `__post_init__` | 41-57 | `messages`、`trace`、`ended`、`tools` | ✅ 第 1～4 課（`client`、`model` 在第 7 課） |
+| ⑤ `respond()` | 61-91 | 核心迴圈 | ✅ 第 1、2 課 |
+| ⑥ `rollback_turn()` | 93-98 | API 出錯時 `del messages[_turn_start:]`，退回這一輪；**已執行的工具不會復原** | 4.5 已教 |
+| ⑦ `_report_model_call()` | 100-110 | 回報秒數、token（畫面上的 ⏱），不影響行為 | 4.5 已教 |
+| ⑧ `_execute()` / `_dispatch()` | 114-142 | 執行工具 | ✅ 第 4 課 |
+| ⑨ `create_agent()` | 144-161 | 讀 API key、建立 Agent | 第 7 課 |
+
+**4.5 確認題（下次從作答開始）**
+1. 為什麼第 65 行要在加入客戶的話**之前**記 `_turn_start`？改成之後記，`rollback_turn()` 會留下什麼？
+2. 客戶說「幫我改成標準方案」，第 1 圈 `change_plan` 成功（資料庫已改），第 2 圈 API 出錯 → `rollback_turn()`。退回後 `messages` 還有改方案的紀錄嗎？資料庫是什麼方案？客戶再說一次會發生什麼問題？
+3. 第 1 句話 ⏱ 顯示輸入 2944 tokens，第 5 句話時會變大、變小還是不變？為什麼？
 
 **環境備註（Windows）**：VS Code 使用者設定已關閉 Python 檔的 inlay hints（Pylance 疊在畫面上的灰色型別提示，例如 `dict[Any, Any]`）。
 
