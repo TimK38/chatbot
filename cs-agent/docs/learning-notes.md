@@ -183,8 +183,8 @@
 | 2 | 核心迴圈 | `core.py` `respond()` | 什麼時候該繼續呼叫模型，什麼時候該停？ | ✅ 2026-11-14 |
 | 3 | 工具定義 | `tools/` 的 `SCHEMA` | 模型怎麼知道有哪些工具、怎麼傳參數？ | ✅ 2026-11-15 |
 | 4 | 執行工具 | `core.py` `_execute()` | 模型說要用工具後，誰去執行？出錯怎麼辦？ | ✅ 2026-11-15 |
-| 4.5 | `core.py` 區塊總表 | `core.py` 全檔 | 補教 `rollback_turn()`、`_report_model_call()` | ⏳ 題目已出，**還沒作答** |
-| 5 | 三個內建工具 | `search_policy`、`load_skill`、`transfer` | Skills 的漸進式揭露在程式裡長什麼樣子？ | ⬜ |
+| 4.5 | `core.py` 區塊總表 | `core.py` 全檔 | 補教 `rollback_turn()`、`_report_model_call()` | ✅ 2026-11-17 |
+| 5 | 三個內建工具 | `search_policy`、`load_skill`、`transfer` | Skills 的漸進式揭露在程式裡長什麼樣子？ | ⏳ `load_skill` 已教完，**等使用者確認沒問題後再出題**；`search_policy` 還沒教 |
 | 6 | MCP 用戶端 | `mcp_client.py` | 外部伺服器的工具怎麼變成模型看得到的工具？（stdio vs HTTP） | ⬜ |
 | 7 | 系統提示詞與組裝 | `prompts/system.md`、`main.py`、`config.py` | 規則寫在提示詞裡，為什麼「不是鎖」？ | ⬜ |
 | 總複習 | 從頭追一次 T12 | 全部 | 把 T12 那段對話的 `messages` 列表完整寫出來 | ⬜ |
@@ -264,7 +264,15 @@
 
 - 使用者問「額度用完時退回讓客戶重問有什麼意義」：429 也可能是每分鐘上限（很快恢復），503 等也是暫時性錯誤；就算今天額度用完，退回也讓 `messages` 保持乾淨，API 恢復後對話能直接接著用。
 
-**4.5 確認題（已出，下次從作答開始）**
+**4.5 已通過**（三題都對）。補充：退回後模型可能沒查就再呼叫一次 `change_plan`（伺服器不檢查業務規則）→「對話忘了，資料庫卻記得」；輸入 token 變大的主因常是工具結果。
+
+**第 5 課（`load_skill` 部分）已教**：
+- 漸進式揭露：平常只把目錄（name + description，實測 305 字）放進系統提示詞；需要時 `load_skill(name)` 以工具結果回傳全文（每份約 1000～1400 字）。
+- `_parse()` 用 `---` 切出 frontmatter 與全文；`_skills()` 用 `@lru_cache` 只讀一次；`catalog()` 產生目錄，`build_system_prompt()` 把 `{skills_catalog}` 換掉。
+- 全文加在 `messages` 最後面，不改系統提示詞 → KV Cache 不失效。
+- `run()` 第 61 行只接受目錄裡有的名字，不拼檔案路徑，所以 `"../../.env"` 讀不到密鑰（實測）。
+
+（以下是 4.5 的題目，留作紀錄）
 1. 為什麼第 65 行要在加入客戶的話**之前**記 `_turn_start`？改成之後記，`rollback_turn()` 會留下什麼？
 2. 客戶說「幫我改成標準方案」，第 1 圈 `change_plan` 成功（資料庫已改），第 2 圈 API 出錯 → `rollback_turn()`。退回後 `messages` 還有改方案的紀錄嗎？資料庫是什麼方案？客戶再說一次會發生什麼問題？
 3. 第 1 句話 ⏱ 顯示輸入 2944 tokens，第 5 句話時會變大、變小還是不變？為什麼？
