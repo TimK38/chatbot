@@ -184,7 +184,7 @@
 | 3 | 工具定義 | `tools/` 的 `SCHEMA` | 模型怎麼知道有哪些工具、怎麼傳參數？ | ✅ 2026-11-15 |
 | 4 | 執行工具 | `core.py` `_execute()` | 模型說要用工具後，誰去執行？出錯怎麼辦？ | ✅ 2026-11-15 |
 | 4.5 | `core.py` 區塊總表 | `core.py` 全檔 | 補教 `rollback_turn()`、`_report_model_call()` | ✅ 2026-11-17 |
-| 5 | 三個內建工具 | `search_policy`、`load_skill`、`transfer` | Skills 的漸進式揭露在程式裡長什麼樣子？ | ⏳ `load_skill` 已教完，**等使用者確認沒問題後再出題**；`search_policy` 還沒教 |
+| 5 | 三個內建工具 | `search_policy`、`load_skill`、`transfer` | Skills 的漸進式揭露在程式裡長什麼樣子？ | ⏳ `load_skill` 題目已出，**還沒作答**；`search_policy` 還沒教 |
 | 6 | MCP 用戶端 | `mcp_client.py` | 外部伺服器的工具怎麼變成模型看得到的工具？（stdio vs HTTP） | ⬜ |
 | 7 | 系統提示詞與組裝 | `prompts/system.md`、`main.py`、`config.py` | 規則寫在提示詞裡，為什麼「不是鎖」？ | ⬜ |
 | 總複習 | 從頭追一次 T12 | 全部 | 把 T12 那段對話的 `messages` 列表完整寫出來 | ⬜ |
@@ -275,6 +275,11 @@
 - 使用者提問（已回答）：
   - `@lru_cache`：包一層「參數 → 結果」的筆記本，同參數直接回傳不執行；`maxsize=1` 只記 1 筆，滿了擦掉最久沒用的（LRU）。實測 `_skills()` 呼叫 3 次 hits=2、misses=1。副作用：執行中改 `SKILL.md` 不會生效，要重啟。
   - `respond()` 裡沒有 `load_skill`：它只看 `tool_calls` 的名字，在 `_dispatch()` 第 135 行查 `BUILTIN_TOOLS` 才呼叫到 `run()`。`core.py` 只在 import（21）和 `catalog()`（38，系統提示詞的目錄）直接用到它。好處：新增工具不用改核心迴圈。
+
+**第 5 課 `load_skill` 確認題（已出，下次從作答開始）**
+1. 模型呼叫 `load_skill("cancel-and-refund")`，全文加在 `messages` 哪裡、什麼 role？為什麼不接在系統提示詞後面？
+2. 執行中新增 `skills/account-security/SKILL.md` 但沒重啟：目錄看得到嗎？呼叫 `load_skill("account-security")` 會得到什麼？為什麼？
+3. 若 `run()` 改成 `path = SKILLS_DIR / name` 直接讀檔，注入文字讓模型傳 `../.env`，會怎樣？第 61 行為什麼擋得住？跟在 `description` 寫「不可讀 .env」有什麼根本不同？
 
 （以下是 4.5 的題目，留作紀錄）
 1. 為什麼第 65 行要在加入客戶的話**之前**記 `_turn_start`？改成之後記，`rollback_turn()` 會留下什麼？
