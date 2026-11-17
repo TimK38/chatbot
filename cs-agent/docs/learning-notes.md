@@ -183,7 +183,7 @@
 | 2 | 核心迴圈 | `core.py` `respond()` | 什麼時候該繼續呼叫模型，什麼時候該停？ | ✅ 2026-11-14 |
 | 3 | 工具定義 | `tools/` 的 `SCHEMA` | 模型怎麼知道有哪些工具、怎麼傳參數？ | ✅ 2026-11-15 |
 | 4 | 執行工具 | `core.py` `_execute()` | 模型說要用工具後，誰去執行？出錯怎麼辦？ | ✅ 2026-11-15 |
-| 4.5 | `core.py` 區塊總表 | `core.py` 全檔 | 補教 `rollback_turn()`、`_report_model_call()` | ⏳ 已教完，**等使用者確認沒問題後再出題** |
+| 4.5 | `core.py` 區塊總表 | `core.py` 全檔 | 補教 `rollback_turn()`、`_report_model_call()` | ⏳ 題目已出，**還沒作答** |
 | 5 | 三個內建工具 | `search_policy`、`load_skill`、`transfer` | Skills 的漸進式揭露在程式裡長什麼樣子？ | ⬜ |
 | 6 | MCP 用戶端 | `mcp_client.py` | 外部伺服器的工具怎麼變成模型看得到的工具？（stdio vs HTTP） | ⬜ |
 | 7 | 系統提示詞與組裝 | `prompts/system.md`、`main.py`、`config.py` | 規則寫在提示詞裡，為什麼「不是鎖」？ | ⬜ |
@@ -262,7 +262,9 @@
 - `getattr(物件, "名稱", 預設值)`：拿不到屬性就回傳預設值，不會丟 `AttributeError`。Gemini 的 OpenAI 相容介面不保證每個欄位都有（例如 `reasoning_tokens`），回報用的東西拿不到就算了，不要讓 Agent 當掉。
 - `rollback_turn()` 在 `main.py:66` 被呼叫（API 出錯時）。使用者用 `Ctrl+F` 只搜到目前檔案；搜尋整個專案要用 `Ctrl+Shift+F`。
 
-**4.5 確認題（使用者確認沒問題後才出；出題後從作答開始）**
+- 使用者問「額度用完時退回讓客戶重問有什麼意義」：429 也可能是每分鐘上限（很快恢復），503 等也是暫時性錯誤；就算今天額度用完，退回也讓 `messages` 保持乾淨，API 恢復後對話能直接接著用。
+
+**4.5 確認題（已出，下次從作答開始）**
 1. 為什麼第 65 行要在加入客戶的話**之前**記 `_turn_start`？改成之後記，`rollback_turn()` 會留下什麼？
 2. 客戶說「幫我改成標準方案」，第 1 圈 `change_plan` 成功（資料庫已改），第 2 圈 API 出錯 → `rollback_turn()`。退回後 `messages` 還有改方案的紀錄嗎？資料庫是什麼方案？客戶再說一次會發生什麼問題？
 3. 第 1 句話 ⏱ 顯示輸入 2944 tokens，第 5 句話時會變大、變小還是不變？為什麼？
