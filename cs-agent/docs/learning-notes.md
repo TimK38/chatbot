@@ -276,7 +276,12 @@
   - `@lru_cache`：包一層「參數 → 結果」的筆記本，同參數直接回傳不執行；`maxsize=1` 只記 1 筆，滿了擦掉最久沒用的（LRU）。實測 `_skills()` 呼叫 3 次 hits=2、misses=1。副作用：執行中改 `SKILL.md` 不會生效，要重啟。
   - `respond()` 裡沒有 `load_skill`：它只看 `tool_calls` 的名字，在 `_dispatch()` 第 135 行查 `BUILTIN_TOOLS` 才呼叫到 `run()`。`core.py` 只在 import（21）和 `catalog()`（38，系統提示詞的目錄）直接用到它。好處：新增工具不用改核心迴圈。
 
-**第 5 課 `load_skill` 批改**：第 1 題 role 對，但沒說「加在最後面」和「為什麼不接系統提示詞（KV Cache）」；第 2 題結論對，理由要精確（目錄在建立 Agent 時組好；`run()` 看不到是因為 `@lru_cache` 記著舊的 4 份）；**第 3 題錯**：答案和第 2 題相同，沒注意到改過的 `run()` 已經沒有白名單。實際會讀到 `cs-agent/.env` 並把 API key 放進 `messages`。已補充說明，**等使用者確認沒問題後再出補充題**。
+**第 5 課 `load_skill` 批改**：第 1 題 role 對，但沒說「加在最後面」和「為什麼不接系統提示詞（KV Cache）」；第 2 題結論對，理由要精確（目錄在建立 Agent 時組好；`run()` 看不到是因為 `@lru_cache` 記著舊的 4 份）；**第 3 題錯**：答案和第 2 題相同，沒注意到改過的 `run()` 已經沒有白名單。實際會讀到 `cs-agent/.env` 並把 API key 放進 `messages`。已補充說明。
+- 使用者問「KV Cache 的程式碼在哪」：專案裡沒有，它在 Google 伺服器上自動發生；我們只負責不破壞它（54 行系統提示詞只放一次、56-57 行工具清單固定、只 `append`、`load_skill` 不改系統提示詞）。可在 ⏱ 加上快取 token 數來觀察，但要花額度，先不做。
+
+**第 5 課 `load_skill` 補充題（已出，下次從作答開始）**
+1. 原本的 `run()` 分別收到 `"cancel-and-refund"`、`"../.env"`、`"Cancel-And-Refund"` 會得到什麼？為什麼？
+2. 若改成 `self.messages[0]["content"] += 全文`：違反 core.py:8 哪條規矩？下一次呼叫時 KV Cache 會怎樣？
 
 **第 5 課 `load_skill` 確認題（原題，留作紀錄）**
 1. 模型呼叫 `load_skill("cancel-and-refund")`，全文加在 `messages` 哪裡、什麼 role？為什麼不接在系統提示詞後面？
