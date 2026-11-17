@@ -184,7 +184,7 @@
 | 3 | 工具定義 | `tools/` 的 `SCHEMA` | 模型怎麼知道有哪些工具、怎麼傳參數？ | ✅ 2026-11-15 |
 | 4 | 執行工具 | `core.py` `_execute()` | 模型說要用工具後，誰去執行？出錯怎麼辦？ | ✅ 2026-11-15 |
 | 4.5 | `core.py` 區塊總表 | `core.py` 全檔 | 補教 `rollback_turn()`、`_report_model_call()` | ✅ 2026-11-17 |
-| 5 | 三個內建工具 | `search_policy`、`load_skill`、`transfer` | Skills 的漸進式揭露在程式裡長什麼樣子？ | ⏳ `load_skill` 題目已出，**還沒作答**；`search_policy` 還沒教 |
+| 5 | 三個內建工具 | `search_policy`、`load_skill`、`transfer` | Skills 的漸進式揭露在程式裡長什麼樣子？ | ⏳ `load_skill` ✅；`search_policy` 已教完，**等使用者確認沒問題後再出題** |
 | 6 | MCP 用戶端 | `mcp_client.py` | 外部伺服器的工具怎麼變成模型看得到的工具？（stdio vs HTTP） | ⬜ |
 | 7 | 系統提示詞與組裝 | `prompts/system.md`、`main.py`、`config.py` | 規則寫在提示詞裡，為什麼「不是鎖」？ | ⬜ |
 | 總複習 | 從頭追一次 T12 | 全部 | 把 T12 那段對話的 `messages` 列表完整寫出來 | ⬜ |
@@ -279,7 +279,15 @@
 **第 5 課 `load_skill` 批改**：第 1 題 role 對，但沒說「加在最後面」和「為什麼不接系統提示詞（KV Cache）」；第 2 題結論對，理由要精確（目錄在建立 Agent 時組好；`run()` 看不到是因為 `@lru_cache` 記著舊的 4 份）；**第 3 題錯**：答案和第 2 題相同，沒注意到改過的 `run()` 已經沒有白名單。實際會讀到 `cs-agent/.env` 並把 API key 放進 `messages`。已補充說明。
 - 使用者問「KV Cache 的程式碼在哪」：專案裡沒有，它在 Google 伺服器上自動發生；我們只負責不破壞它（54 行系統提示詞只放一次、56-57 行工具清單固定、只 `append`、`load_skill` 不改系統提示詞）。可在 ⏱ 加上快取 token 數來觀察，但要花額度，先不做。
 
-**第 5 課 `load_skill` 補充題（已出，下次從作答開始）**
+**`load_skill` 補充題已通過**。補充：白名單擋下時是**正常回傳** `{"ok": False}`（不是 raise），並列出可用名字讓模型修正；字串比對分大小寫。違反的規矩是「只增不改」（使用者沒答出名稱，但 KV Cache 理解正確）；全文放系統提示詞或最後面 token 數一樣，差別只在 KV Cache。
+
+**第 5 課 `search_policy` 已教**：
+- 知識（規則，是什麼）用搜尋；Skill（流程，怎麼做）用目錄點名。
+- 四步：用 `## ` 切 16 段（`@lru_cache`）→ 中文兩字一組（bigram）切詞 → 標題命中 +3、內容命中 +1 → 指定編號（P3-2）優先，再比分數，取前 3。
+- 找不到回 `ok: True` + 「請換個關鍵字再查」：不是錯誤，是告訴模型下一步。
+- 刻意簡單；介面（查詢 → 段落）不變就能換成更好的搜尋，Agent 不用改。
+
+**第 5 課 `load_skill` 補充題（留作紀錄）**
 1. 原本的 `run()` 分別收到 `"cancel-and-refund"`、`"../.env"`、`"Cancel-And-Refund"` 會得到什麼？為什麼？
 2. 若改成 `self.messages[0]["content"] += 全文`：違反 core.py:8 哪條規矩？下一次呼叫時 KV Cache 會怎樣？
 
