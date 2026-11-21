@@ -298,6 +298,8 @@
 
 - 使用者提問（已回答）：`@dataclass` 等於自動產生 `__init__`、`__repr__`（印得出內容）、`__eq__`（比內容）；實測手寫 class 印出 `<object at 0x…>`、`==` 為 False。型別標註一樣不檢查（`SectionDC(123, ["x"])` 照收），要檢查用 pydantic。選用原則：內部可信資料 → dataclass（`Section`、`ToolCall`、`Agent`）；外部不可信資料 → pydantic 或自己檢查；要轉 JSON 的暫時資料 → dict。
 
+- 使用者提問（已回答）：pydantic = 讓型別標註真的被檢查的第三方套件（`BaseModel`）；建立時檢查、可轉換的自動轉（`"4"` → 4）、不行就丟 `ValidationError` 列出所有錯；`model_validate_json` / `model_dump` 與 JSON 互轉。專案中：Gemini 回應（core.py:77 `model_dump()`）；**MCP 套件會依 `server.py` 工具函式的型別標註自動建 pydantic 模型檢查參數**（已查原始碼 `arg_model.model_validate`）。→ 修正觀念：內建工具的型別標註不檢查，MCP 工具的會；但 pydantic 只檢查型別，範圍與業務規則仍要自己寫。
+
 **第 5 課 `search_policy` 確認題（原題，留作紀錄）**
 1. `_terms("取消訂閱")` 切出哪些詞？P3-1（標題「P3-1 取消訂閱」，內容有「取消」「訂閱」、沒有「消訂」）得幾分？
 2. `search_policy("P3-2 天氣")` 回傳哪些段落？為什麼？
