@@ -2,7 +2,7 @@
 
 我的目標：**學會建立一個安全的 AI Agent，並能有效評估它的表現。** 方法是邊讀《AI Agent》邊做「星河影音客服 Agent」。
 
-最後更新：2026-11-14
+最後更新：2026-11-21
 
 ---
 
@@ -173,8 +173,16 @@
 
 ### 目前進行中：讀懂 `agent/` 的課程
 
+> **▶ 下次從這裡開始：第 6 課「MCP 用戶端」，還沒開始上課。**
+> 已向使用者介紹過第 6 課的概要（`mcp_client.py` 全檔 + `config.py:39-66` 的 `MCP_SERVERS`；五個主題：兩種連線方式、連線三步驟、`to_openai()`、三道安全設定、`call()` 的回傳），使用者還沒說「開始」。下次先問要不要開始，再從核心問題講起。
+
 步驟 2 的程式是 AI 寫的，現在要一課一課讀懂它，再進步驟 3。
-每課的結構：一個核心問題 → 概念 → 只看相關的幾行程式 → 2～3 題確認題 → 批改，有誤解就補充再出一題，通過才進下一課。
+
+**教學方式**（使用者指定）
+- 每課：核心問題 → 概念 → 只看相關的幾行程式（附連結與行號）→ **停下來問有沒有問題** → 使用者說沒問題 → 才出 2～3 題確認題 → 批改，有誤解就補充，確認沒問題後再出一題，通過才進下一課。
+- 照「一句話的流程」上課（選項 A），**每個檔案教完補一張區塊總表**，沒教到的段落當場補講。
+- 題目、批改、補充說明都**只能用已經教過的檔案**。`main.py` 還沒教，相關題目等第 7 課。
+- 能離線示範的就離線跑給使用者看（不花 Gemini 額度），例如用假模型照劇本回應。
 
 | 課 | 主題 | 檔案 | 核心問題 | 狀態 |
 |---|---|---|---|---|
@@ -184,142 +192,116 @@
 | 3 | 工具定義 | `tools/` 的 `SCHEMA` | 模型怎麼知道有哪些工具、怎麼傳參數？ | ✅ 2026-11-15 |
 | 4 | 執行工具 | `core.py` `_execute()` | 模型說要用工具後，誰去執行？出錯怎麼辦？ | ✅ 2026-11-15 |
 | 4.5 | `core.py` 區塊總表 | `core.py` 全檔 | 補教 `rollback_turn()`、`_report_model_call()` | ✅ 2026-11-17 |
-| 5 | 三個內建工具 | `search_policy`、`load_skill`、`transfer` | Skills 的漸進式揭露在程式裡長什麼樣子？ | ✅ 2026-11-21（`tools/` 區塊總表已補，等使用者確認沒問題後進第 6 課） |
-| 6 | MCP 用戶端 | `mcp_client.py` | 外部伺服器的工具怎麼變成模型看得到的工具？（stdio vs HTTP） | ⬜ |
+| 5 | 三個內建工具 + `tools/` 區塊總表 | `search_policy`、`load_skill`、`transfer` | Skills 的漸進式揭露在程式裡長什麼樣子？ | ✅ 2026-11-21 |
+| 6 | MCP 用戶端 | `mcp_client.py`、`config.py` | 外部伺服器的工具怎麼變成模型看得到的工具？（stdio vs HTTP） | ▶ **下一課** |
 | 7 | 系統提示詞與組裝 | `prompts/system.md`、`main.py`、`config.py` | 規則寫在提示詞裡，為什麼「不是鎖」？ | ⬜ |
 | 總複習 | 從頭追一次 T12 | 全部 | 把 T12 那段對話的 `messages` 列表完整寫出來 | ⬜ |
 | 選做 | 新增 `cancel_pending_change` | 伺服器 + Agent | 改伺服器、讓 Agent 看到、照規則使用 | ⬜ |
 
-**第 0 課學到的重點**
+#### 第 0 課：全貌
+
 - 模型只會「說」，不會「做」：它只看得到 `messages` 和工具清單，實際動作都由 Harness 執行。
-- 我的 Mac 上跑 2 個程式（Agent、starriver 伺服器）；Gemini 和 Microsoft Learn 都在外部。
-- **系統提示詞只送給模型，MCP 伺服器看不到**（我原本以為會交給 session，已修正）。`ClientSession` 只是「Agent ↔ 某台 MCP 伺服器」的連線。
+- 我的電腦上跑 2 個程式（Agent、starriver 伺服器）；Gemini 和 Microsoft Learn 都在外部。
+- **系統提示詞只送給模型，MCP 伺服器看不到**。`ClientSession` 只是「Agent ↔ 某台 MCP 伺服器」的連線。
 - 送往 Google 的是**整個 messages**（包含查到的客戶資料）；送往 Microsoft 的**只有工具參數**。外部伺服器不知道我們的目的，也無法替我們把關，所以要有 W7。
 
-**第 1 課學到的重點**
-- `messages` 四種 role：`system`（54 行，建立時放一次）、`user`（66 行）、`assistant`（77 行，可能是 tool_calls 也可能是給客戶的回覆）、`tool`（84 行，用 `tool_call_id` 對應請求）。
+#### 第 1 課：`messages` 列表
+
+- 四種 role：`system`（54 行，建立時放一次）、`user`（66 行）、`assistant`（77 行，可能是 tool_calls，也可能是給客戶的回覆）、`tool`（84 行，用 `tool_call_id` 對應請求）。
 - 帶 `tool_calls` 的 assistant 訊息客戶看不到，但一定要留在列表裡，否則 tool 結果會「憑空出現」，API 通常直接報錯。
 - 「那標準方案呢？」能被理解，是因為整段對話每次都重新送出。
-- **誤解修正**：
-  - `message`（單數，這次的回應）和 `messages`（複數，整段對話）不同。第 79 行檢查的是 `message`，漏掉第 77 行不會改變流程，壞的是送出去的對話。
-  - `return`（79～80 行）不會往列表加東西，只是把文字交給畫面。客戶的下一句話由下一次 `respond()` 的第 66 行加入。
+- 誤解修正：`message`（單數，這次的回應）≠ `messages`（複數，整段對話）；`return`（79～80 行）不會往列表加東西。
 
-**第 2 課學到的重點**
+#### 第 2 課：核心迴圈
+
 - 繼續或停只看第 79 行：回應有 `tool_calls` → 執行工具、加回結果、下一圈；沒有 → `return` 給客戶。
-- `for _ in range(15)` 防止模型一直要工具而無限迴圈（一直燒額度）。跑滿後：通知畫面 → 存固定的轉接訊息 → `ended = True`。
-- `ended = True`（90 行）＋ `if self.ended`（63 行）＝程式強制的轉接：Agent 已經告訴客戶要轉真人，不能再自己回答；它也已經證明卡住了。
-- 一次回應要求 N 個工具 → 加 1 筆 `assistant`（含 N 個 tool_calls）＋ N 筆 `tool`。口訣：**先有「要」，才有「給」**。
-- **誤解修正**：第 63 行在迴圈外，每次 `respond()` 只檢查一次，判斷的是「對話還能不能繼續」，不是「這一圈要不要繼續」。
+- `for _ in range(15)` 防止無限迴圈（一直燒額度）。跑滿後：通知畫面 → 存固定的轉接訊息 → `ended = True`。
+- 一次回應要求 N 個工具 → 1 筆 `assistant`（含 N 個 tool_calls）＋ N 筆 `tool`。口訣：**先有「要」，才有「給」**。
+- 誤解修正：第 63 行在迴圈外，每次 `respond()` 只檢查一次，判斷的是「對話還能不能繼續」。
 
-**教學方式（使用者選 A）**：照流程上課，**每個檔案教完補一張區塊總表**（像 `server.py` 那樣），沒教到的段落當場補講。已知會漏的：`core.py` 的 `ToolCall` / `trace`、`rollback_turn()`、`_report_model_call()`（第 4 課後補 `core.py` 總表）；`main.py` 的 `chat()` / `print_event()`（第 7 課）。
+#### 第 3 課：工具定義
 
-**第 3 課目前學到的重點**
 - 工具說明書（`SCHEMA`）= `name` + `description` + `parameters`（JSON Schema）。模型只看得到說明書，看不到 `run()`。
 - `description` 就是提示詞：要寫「做什麼」，也要寫「什麼時候用、什麼情況改用別的工具」（例如「價格請用 list_plans」）。
-- 內建工具用 `SCHEMA`，MCP 工具用 `to_openai()` 轉成同樣格式，模型分不出來源。工具清單每次呼叫都重送，且固定不變（KV Cache）。
-- 模型要用工具時給的 `arguments` 是一段**字串**（模型寫出來的 JSON 文字），不是驗證過的資料。
-- `run()` 的回傳值變成 `tool` 訊息，所以也能拿來指示模型。
-- **誤解修正**：`SCHEMA` 只是說明，不是鎖，模型不一定照做，專案裡也沒有程式拿它檢查參數。傳 `{}` 時是 Python 的 `run(reason)` 因缺參數丟出 `TypeError`，不是 `SCHEMA` 擋下的。
+- 內建工具用 `SCHEMA`，MCP 工具用 `to_openai()` 轉成同樣格式，模型分不出來源。工具清單每次重送且固定不變（KV Cache）。
+- 模型給的 `arguments` 是一段**字串**（模型寫出來的 JSON 文字），不是驗證過的資料。`run()` 的回傳值會變成 `tool` 訊息，所以也能拿來指示模型。
+- **重點表（型別標註的誤解出現過兩次，之後要留意）**：
 
-- 第一道補充題（`{"reason": ""}`）：答對「`SCHEMA` 不擋」「檢查要寫在程式裡」。**誤解修正**：以為 Python 會因空字串出錯。其實型別標註 `reason: str` 也只是說明，執行時不檢查；Python 只會擋「參數名稱或個數不對」。內容檢查要自己寫（用 `.strip()`、`isinstance`，錯誤回傳 `{"ok": False}` 不要 raise）。
+  | 寫在哪裡 | 執行時會檢查嗎？ |
+  |---|---|
+  | `description`、`SCHEMA` | ❌ |
+  | 型別標註 `reason: str` | ❌（內建工具）；MCP 工具會被 MCP 套件用 pydantic 檢查型別 |
+  | 函式的參數名稱和個數 | ✅ Python 會擋（`TypeError`） |
+  | 自己寫的 `if` | ✅ |
 
-- 第二道補充題：`run(reason=["退款", ...])` 仍以為 Python 會擋（**型別標註誤解出現第二次**），實際執行示範後確認是正常執行。之後的課再留意這點。
-- 重點表：`description`、`SCHEMA`、型別標註 `: str` 執行時都不檢查；Python 只擋參數名稱與個數；**只有真的會執行的程式碼才是鎖**。
+  **只有真的會執行的程式碼才是鎖。**
 
-**第 4 課停在這裡（下次從作答開始）**
-1. 模型呼叫 `transfer_to_human`，`arguments` 是 `'{"why": "退款"}'`。依序經過哪幾行？放進 `messages` 的 `tool` 訊息內容是什麼？
-2. 第 128～129 行執行後 `ended` 會變 `True` 嗎？轉接其實失敗了，合理嗎？會造成什麼問題？
-3. 為什麼 `_dispatch()` 要用 `try/except` 把錯誤轉成文字？拿掉第 140～141 行，模型給錯參數名稱時會怎樣？
+#### 第 4 課：執行工具
 
-**第 4 課目前學到的重點**
-- 離線實際追蹤 `search_policy`：型別轉一圈「文字 →`json.loads`→ dict →`**`拆開→ 參數 →`run()`→ dict →`json.dumps`→ 文字」，因為模型只能讀寫文字。`source` 只進 `trace`，不進 `messages`。
-- `trace` 是 Agent 記憶體裡的列表（不寫檔），評估程式在同一個程式裡直接讀；記錄所有工具（含內建、含失敗）。`audit_log` 是伺服器寫進資料庫的。
-- 拿掉第 140～141 行：`TypeError` 一路丟到 `main.py`（只接 `APIStatusError`），整個程式當掉，第 125 行也不會執行（使用者自己發現 trace 不會記錄）。
-- **誤解修正**：
-  - 第 1 題漏看 `why` 是錯的參數名稱，以為 `run()` 會成功回傳「已轉接」。實際是 `TypeError` 被第 140 行接住。
-  - 以為 `ended = True` 會立刻停止這次 `respond()`。其實 `for` 迴圈不檢查 `ended`，工具結果照樣加入、模型照樣再被呼叫；`ended` 是在 `main.py:49` 的 `while not agent.ended` 才生效。
-- 發現 bug：轉接失敗也會結束對話（已記進第四節弱點表）。用假模型（照劇本回應，不呼叫 Gemini）實際跑過 `main.py` 示範。
-- **提前補了 `main.py` 的一小段**（第 7 課會完整教）：`while not agent.ended`（49）→ `input`（51）→ `respond()`（60）→ `print` 回覆（68）→ 迴圈結束後印「（已轉接真人客服，對話結束）」（74）。`main.py` 在讀下一句輸入**之前**就檢查 `ended`，所以 `core.py:63-64` 在 `main.py` 裡不會被觸發；它是給其他呼叫者（例如評估程式）的第二道保險（縱深防禦）。
-- 使用者合理地以為「要等客戶輸入第二句才會跳出 core.py:64 的錯誤」，是因為當時還沒教 `main.py`（**教學疏失：批改時用了沒教過的檔案**）。
+- 離線追蹤 `search_policy`：型別轉一圈「文字 →`json.loads`→ dict →`**`拆開→ 參數 →`run()`→ dict →`json.dumps`→ 文字」，因為模型只能讀寫文字。`source` 只進 `trace`，不進 `messages`。
+- 三種錯誤三個地方接住：JSON 壞掉（118 行）、沒有這個工具（139 行）、執行時出錯（140 行）。全部轉成 `{"ok": false, ...}`，不讓 Agent 當掉。拿掉 140～141 行 → `TypeError` 一路丟上去，程式當掉，第 125 行也不會記錄。
+- `trace` 是 Agent 記憶體裡的列表（不寫檔），評估程式直接讀；記錄所有工具（含內建、含失敗）。`audit_log` 是伺服器寫進資料庫的。
+- 誤解修正：`ended = True` 不會停止這次 `respond()`，內圈不檢查它，模型還會再被呼叫一次；`ended` 由外面（`main.py` 的 `while not agent.ended`）檢查。
+- 發現 bug：轉接失敗也會結束對話（已記進第四節弱點表）。
 
-- 補充題：答對「`ended = True` 後模型還會再被呼叫一次」，**第 4 課通過**。第 2 題（經過 `main.py` 哪幾行）**已取消**：使用者指出 `main.py` 還沒教，要考就先教。→ **`main.py` 的題目一律等第 7 課教完再出。**
-
-**`core.py` 區塊總表**
+#### 4.5：`core.py` 區塊總表
 
 | 區塊 | 行號 | 內容 | 狀態 |
 |---|---|---|---|
 | ① 開頭 | 1-24 | 說明、import、`EventHandler` | 第 7 課 |
-| ② `ToolCall` | 27-33 | 一次工具呼叫的紀錄 | ✅ 第 4 課 |
-| ③ `build_system_prompt()` | 36-38 | 讀系統提示詞，填入 Skills 目錄 | 第 5、7 課 |
+| ② `ToolCall` | 27-33 | 一次工具呼叫的紀錄（`@dataclass`） | ✅ 第 4 課 |
+| ③ `build_system_prompt()` | 36-38 | 讀系統提示詞，填入 Skills 目錄 | ✅ 第 5 課（系統提示詞內容在第 7 課） |
 | ④ `Agent` 欄位 + `__post_init__` | 41-57 | `messages`、`trace`、`ended`、`tools` | ✅ 第 1～4 課（`client`、`model` 在第 7 課） |
 | ⑤ `respond()` | 61-91 | 核心迴圈 | ✅ 第 1、2 課 |
-| ⑥ `rollback_turn()` | 93-98 | API 出錯時 `del messages[_turn_start:]`，退回這一輪；**已執行的工具不會復原** | 4.5 已教 |
-| ⑦ `_report_model_call()` | 100-110 | 回報秒數、token（畫面上的 ⏱），不影響行為 | 4.5 已教 |
+| ⑥ `rollback_turn()` | 93-98 | API 出錯時 `del messages[_turn_start:]` 退回這一輪；**已執行的工具不會復原**（對話忘了，資料庫卻記得） | ✅ 4.5 |
+| ⑦ `_report_model_call()` | 100-110 | 回報秒數、token（畫面上的 ⏱），不影響行為 | ✅ 4.5 |
 | ⑧ `_execute()` / `_dispatch()` | 114-142 | 執行工具 | ✅ 第 4 課 |
 | ⑨ `create_agent()` | 144-161 | 讀 API key、建立 Agent | 第 7 課 |
 
-**4.5 使用者的提問（已回答）**
-- `getattr(物件, "名稱", 預設值)`：拿不到屬性就回傳預設值，不會丟 `AttributeError`。Gemini 的 OpenAI 相容介面不保證每個欄位都有（例如 `reasoning_tokens`），回報用的東西拿不到就算了，不要讓 Agent 當掉。
-- `rollback_turn()` 在 `main.py:66` 被呼叫（API 出錯時）。使用者用 `Ctrl+F` 只搜到目前檔案；搜尋整個專案要用 `Ctrl+Shift+F`。
+- `_turn_start` 要在加入客戶的話**之前**記，退回時才會連客戶的話一起刪掉。
+- 退回的意義：429 也可能是每分鐘上限、503 是暫時忙碌，稍後重說就好；就算今天額度用完，`messages` 也保持乾淨，恢復後能接著用。
+- KV Cache 在 Google 伺服器上自動發生，專案裡沒有它的程式碼；我們只負責不破壞它（系統提示詞只放一次、工具清單固定、只 `append`）。
 
-- 使用者問「額度用完時退回讓客戶重問有什麼意義」：429 也可能是每分鐘上限（很快恢復），503 等也是暫時性錯誤；就算今天額度用完，退回也讓 `messages` 保持乾淨，API 恢復後對話能直接接著用。
+#### 第 5 課：三個內建工具
 
-**4.5 已通過**（三題都對）。補充：退回後模型可能沒查就再呼叫一次 `change_plan`（伺服器不檢查業務規則）→「對話忘了，資料庫卻記得」；輸入 token 變大的主因常是工具結果。
+**`load_skill`（漸進式揭露）**
+- 平常只把目錄（name + description，實測 305 字）放進系統提示詞；需要時 `load_skill(name)` 以工具結果回傳全文（每份約 1000～1400 字）。
+- 全文加在 `messages` 最後面，不改系統提示詞（違反「只增不改」會讓 KV Cache 失效）。
+- `run()` 第 61 行是**白名單**：只接受目錄裡有的名字，不拼檔案路徑，所以 `"../.env"` 讀不到密鑰（實測）。擋下時是正常回傳 `{"ok": False}` 並列出可用名字，讓模型修正。
+- `respond()` 裡沒有 `load_skill`：它只看 `tool_calls` 的名字，`_dispatch()` 查 `BUILTIN_TOOLS` 才呼叫到 `run()`。新增工具不用改核心迴圈。
+- 誤解修正：沒注意到題目裡改過的 `run()` 已經拿掉白名單（實際會讀到 `.env`，key 進入 `messages` 送往 Google）。
 
-**第 5 課（`load_skill` 部分）已教**：
-- 漸進式揭露：平常只把目錄（name + description，實測 305 字）放進系統提示詞；需要時 `load_skill(name)` 以工具結果回傳全文（每份約 1000～1400 字）。
-- `_parse()` 用 `---` 切出 frontmatter 與全文；`_skills()` 用 `@lru_cache` 只讀一次；`catalog()` 產生目錄，`build_system_prompt()` 把 `{skills_catalog}` 換掉。
-- 全文加在 `messages` 最後面，不改系統提示詞 → KV Cache 不失效。
-- `run()` 第 61 行只接受目錄裡有的名字，不拼檔案路徑，所以 `"../../.env"` 讀不到密鑰（實測）。
-
-- 使用者提問（已回答）：
-  - `@lru_cache`：包一層「參數 → 結果」的筆記本，同參數直接回傳不執行；`maxsize=1` 只記 1 筆，滿了擦掉最久沒用的（LRU）。實測 `_skills()` 呼叫 3 次 hits=2、misses=1。副作用：執行中改 `SKILL.md` 不會生效，要重啟。
-  - `respond()` 裡沒有 `load_skill`：它只看 `tool_calls` 的名字，在 `_dispatch()` 第 135 行查 `BUILTIN_TOOLS` 才呼叫到 `run()`。`core.py` 只在 import（21）和 `catalog()`（38，系統提示詞的目錄）直接用到它。好處：新增工具不用改核心迴圈。
-
-**第 5 課 `load_skill` 批改**：第 1 題 role 對，但沒說「加在最後面」和「為什麼不接系統提示詞（KV Cache）」；第 2 題結論對，理由要精確（目錄在建立 Agent 時組好；`run()` 看不到是因為 `@lru_cache` 記著舊的 4 份）；**第 3 題錯**：答案和第 2 題相同，沒注意到改過的 `run()` 已經沒有白名單。實際會讀到 `cs-agent/.env` 並把 API key 放進 `messages`。已補充說明。
-- 使用者問「KV Cache 的程式碼在哪」：專案裡沒有，它在 Google 伺服器上自動發生；我們只負責不破壞它（54 行系統提示詞只放一次、56-57 行工具清單固定、只 `append`、`load_skill` 不改系統提示詞）。可在 ⏱ 加上快取 token 數來觀察，但要花額度，先不做。
-
-**`load_skill` 補充題已通過**。補充：白名單擋下時是**正常回傳** `{"ok": False}`（不是 raise），並列出可用名字讓模型修正；字串比對分大小寫。違反的規矩是「只增不改」（使用者沒答出名稱，但 KV Cache 理解正確）；全文放系統提示詞或最後面 token 數一樣，差別只在 KV Cache。
-
-**第 5 課 `search_policy` 已教**：
+**`search_policy`（搜尋知識）**
 - 知識（規則，是什麼）用搜尋；Skill（流程，怎麼做）用目錄點名。
-- 四步：用 `## ` 切 16 段（`@lru_cache`）→ 中文兩字一組（bigram）切詞 → 標題命中 +3、內容命中 +1 → 指定編號（P3-2）優先，再比分數，取前 3。
+- 四步：`split("\n## ")` 切 16 段、`partition("\n")` 分開標題與內容 → 中文連續片段內兩字一組（bigram，空格會斷開片段）→ 標題命中 +3、內容命中 +1 → 指定編號（P3-2）優先，再比分數，取前 3（`TOP_K`）。
 - 找不到回 `ok: True` + 「請換個關鍵字再查」：不是錯誤，是告訴模型下一步。
-- 刻意簡單；介面（查詢 → 段落）不變就能換成更好的搜尋，Agent 不用改。
+- 為什麼不用 jieba / CKIP：bigram 不會因切錯漏掉專有名詞、零依賴、知識庫小；缺點是同義詞（退錢 vs 退款）找不到。實務常用關鍵字（BM25）＋向量搜尋的混合搜尋。先用步驟 3 的評估量測，有證據再換，介面不變 Agent 就不用改。
+- 誤解修正：`t in title` 是看兩個字有沒有**連在一起出現**，「消訂」也在「取消訂閱」裡（P3-1 是 11 分，不是 8 分）。
 
-- 使用者提問（已回答）：第 57 行 `partition("\n")` 只切第一個換行 → `title` 是標題行，`body` 是該段全部內容（第 56 行先用 `split("\n## ")` 切段，`[0]` 是文件標題所以跳過；第 63 行 `strip()` 去頭尾空白）。`split` 每個都切、`partition` 只切第一個。`@lru_cache` 再講一次：等於手寫「有記過就直接回傳，沒有才做並記下」；記住的是 16 段規則，不是搜尋結果。
+**`tools/` 區塊總表**：`__init__.py`（第 3 課）、`transfer.py`（第 3、4 課）、`load_skill.py`（第 5 課）、`search_policy.py`（第 3、5 課）全部教過。補講了 `TOP_K`、`SECTION_ID`（`P\d+-\d+` + `IGNORECASE`）、`Section`、第 60 行沒編號就用標題當 ID、第 70 行英數字整個詞轉小寫。
 
-**`search_policy` 批改**：1-1 ✅；**1-2 ❌**（答 8 分，正解 11：「消訂」也連續出現在標題「取消訂閱」裡，`t in title` 是看兩個字有沒有連在一起出現）；2 ✅（其他段 0 分被第 94 行濾掉）；3-1 ✅（補充：cache 的 input 是 `_load_sections()` 的參數，不是查詢）；3-2 ✅（多個 Agent 不同時間啟動會答得不一樣）。已補充說明，**等使用者確認沒問題後再出 1-2 的補充題**。
-- 使用者提問（已回答）：為什麼不用 jieba / CKIP？bigram 好處：不會因切錯漏掉專有名詞、零依賴、知識庫小。缺點：同義詞（退錢 vs 退款）找不到，切詞工具也一樣。實務常用關鍵字（BM25）＋向量搜尋的混合搜尋。現在先不換：模型會自己換關鍵字；先用步驟 3 的評估量測，有證據再改，介面不變就能換。
+#### Python 小知識（上課中問到的）
 
-- 1-2 補充題（「年繳 退款」7 分 vs「年繳退款」10 分）全對：第 71 行先切出連續中文片段，空格會斷開片段，bigram 不跨片段。**`search_policy` 通過，第 5 課完成。**
+| 主題 | 一句話 |
+|---|---|
+| `getattr(物件, "名稱", 預設值)` | 拿不到屬性就回傳預設值，不會丟 `AttributeError`。回報用的東西拿不到就算了，不要讓 Agent 當掉 |
+| `@lru_cache` | 同樣的參數問第二次，直接給記住的答案，不重做。代價：執行中改檔案要重啟才生效 |
+| `@dataclass` | 自動產生 `__init__`、`__repr__`（印得出內容）、`__eq__`（比內容）；**不檢查型別** |
+| pydantic | 讓型別標註真的被檢查（`BaseModel`），可轉的自動轉、不行就 `ValidationError`。Gemini 回應、MCP 工具參數都用它 |
+| 選用原則 | 內部可信資料 → dataclass；外部不可信資料 → pydantic 或自己檢查；要轉 JSON 的暫時資料 → dict |
+| `split` vs `partition` | `split` 每個都切；`partition` 只切第一個，固定回傳（前、分隔符、後） |
+| 裝飾器 `@...` | 寫一行，套件在背後幫函式加能力（`@lru_cache`、`@dataclass`、`@server.tool`） |
+| VS Code 搜尋 | `Ctrl+F` 只搜目前檔案；`Ctrl+Shift+F` 搜整個專案 |
 
-**`tools/` 區塊總表**：`__init__.py`（第 3 課）、`transfer.py`（第 3、4 課）、`load_skill.py`（第 5 課）、`search_policy.py`（第 3、5 課）全部教過。補講：`TOP_K` 常數；`SECTION_ID` 正規表示式 `P\d+-\d+` + `IGNORECASE`（第 86 行再 `.upper()`）；`Section` 是 `@dataclass`；第 60 行沒編號就用標題當 ID；第 70 行英數字整個詞轉小寫（「4K 畫質」→ `4k`、`畫質`）。
+`.venv` 裡是安裝的套件，不是我們寫的。例如 MCP 套件在 `func_metadata.py` 依 `server.py` 的型別標註自動建 pydantic 模型檢查參數；`server.py` 本身沒有 pydantic 程式碼。
 
-- 使用者提問（已回答）：`@dataclass` 等於自動產生 `__init__`、`__repr__`（印得出內容）、`__eq__`（比內容）；實測手寫 class 印出 `<object at 0x…>`、`==` 為 False。型別標註一樣不檢查（`SectionDC(123, ["x"])` 照收），要檢查用 pydantic。選用原則：內部可信資料 → dataclass（`Section`、`ToolCall`、`Agent`）；外部不可信資料 → pydantic 或自己檢查；要轉 JSON 的暫時資料 → dict。
+#### 離線示範腳本
 
-- 使用者提問（已回答）：pydantic = 讓型別標註真的被檢查的第三方套件（`BaseModel`）；建立時檢查、可轉換的自動轉（`"4"` → 4）、不行就丟 `ValidationError` 列出所有錯；`model_validate_json` / `model_dump` 與 JSON 互轉。專案中：Gemini 回應（core.py:77 `model_dump()`）；**MCP 套件會依 `server.py` 工具函式的型別標註自動建 pydantic 模型檢查參數**（已查原始碼 `arg_model.model_validate`）。→ 修正觀念：內建工具的型別標註不檢查，MCP 工具的會；但 pydantic 只檢查型別，範圍與業務規則仍要自己寫。
+上課時寫的示範腳本放在 Windows 的 scratchpad（暫存資料夾，不在 repo 裡）：`trace_flow.py`（追蹤 `_execute` → `_dispatch` → `run`）、`demo_transfer_bug.py`（假模型示範轉接失敗 bug）。需要時可以照同樣做法重寫。
 
-**第 5 課 `search_policy` 確認題（原題，留作紀錄）**
-1. `_terms("取消訂閱")` 切出哪些詞？P3-1（標題「P3-1 取消訂閱」，內容有「取消」「訂閱」、沒有「消訂」）得幾分？
-2. `search_policy("P3-2 天氣")` 回傳哪些段落？為什麼？
-3. 執行中把 P3-2 從 14 天改 7 天但沒重啟，模型查到幾天？為什麼？真實系統會有什麼問題？
+#### 環境備註（Windows）
 
-**第 5 課 `load_skill` 補充題（留作紀錄）**
-1. 原本的 `run()` 分別收到 `"cancel-and-refund"`、`"../.env"`、`"Cancel-And-Refund"` 會得到什麼？為什麼？
-2. 若改成 `self.messages[0]["content"] += 全文`：違反 core.py:8 哪條規矩？下一次呼叫時 KV Cache 會怎樣？
-
-**第 5 課 `load_skill` 確認題（原題，留作紀錄）**
-1. 模型呼叫 `load_skill("cancel-and-refund")`，全文加在 `messages` 哪裡、什麼 role？為什麼不接在系統提示詞後面？
-2. 執行中新增 `skills/account-security/SKILL.md` 但沒重啟：目錄看得到嗎？呼叫 `load_skill("account-security")` 會得到什麼？為什麼？
-3. 若 `run()` 改成 `path = SKILLS_DIR / name` 直接讀檔，注入文字讓模型傳 `../.env`，會怎樣？第 61 行為什麼擋得住？跟在 `description` 寫「不可讀 .env」有什麼根本不同？
-
-（以下是 4.5 的題目，留作紀錄）
-1. 為什麼第 65 行要在加入客戶的話**之前**記 `_turn_start`？改成之後記，`rollback_turn()` 會留下什麼？
-2. 客戶說「幫我改成標準方案」，第 1 圈 `change_plan` 成功（資料庫已改），第 2 圈 API 出錯 → `rollback_turn()`。退回後 `messages` 還有改方案的紀錄嗎？資料庫是什麼方案？客戶再說一次會發生什麼問題？
-3. 第 1 句話 ⏱ 顯示輸入 2944 tokens，第 5 句話時會變大、變小還是不變？為什麼？
-
-**環境備註（Windows）**：VS Code 使用者設定已關閉 Python 檔的 inlay hints（Pylance 疊在畫面上的灰色型別提示，例如 `dict[Any, Any]`）。
+- VS Code 使用者設定已關閉 Python 檔的 inlay hints（Pylance 疊在畫面上的灰色型別提示，例如 `dict[Any, Any]`）。
 
 ### 待讀
 
@@ -338,6 +320,14 @@
 ---
 
 ## 六、工作日誌
+
+### 2026-11-14～21（Windows）
+
+- **環境**：舊版 `ai-agent-book/cs-agent` 比對後確認沒有新版缺少的內容，已刪除；Gemini key 搬進新版 `cs-agent/.env`。用 uv 建 Python 3.12 的 `.venv`、初始化資料庫，實測一句對話成功。
+  - `ai-agent-book/cs-agent.7z` 是舊版備份（可能含 key），還沒處理。
+- **課程**：第 1～5 課通過，`core.py`、`tools/` 區塊總表完成。下一課是第 6 課（MCP 用戶端）。
+- **教學規則調整**（已寫進 `CLAUDE.md`）：教完先問有沒有問題，確認沒問題才出題；不用沒教過的檔案出題或批改；只在本機 commit，使用者說「推」才 push。
+- **發現 bug**：轉接失敗也會結束對話（第四節弱點表），步驟 4 由使用者自己修。
 
 ### 2026-11-14（Mac）
 
