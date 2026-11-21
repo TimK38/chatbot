@@ -296,6 +296,8 @@
 
 **`tools/` 區塊總表**：`__init__.py`（第 3 課）、`transfer.py`（第 3、4 課）、`load_skill.py`（第 5 課）、`search_policy.py`（第 3、5 課）全部教過。補講：`TOP_K` 常數；`SECTION_ID` 正規表示式 `P\d+-\d+` + `IGNORECASE`（第 86 行再 `.upper()`）；`Section` 是 `@dataclass`；第 60 行沒編號就用標題當 ID；第 70 行英數字整個詞轉小寫（「4K 畫質」→ `4k`、`畫質`）。
 
+- 使用者提問（已回答）：`@dataclass` 等於自動產生 `__init__`、`__repr__`（印得出內容）、`__eq__`（比內容）；實測手寫 class 印出 `<object at 0x…>`、`==` 為 False。型別標註一樣不檢查（`SectionDC(123, ["x"])` 照收），要檢查用 pydantic。選用原則：內部可信資料 → dataclass（`Section`、`ToolCall`、`Agent`）；外部不可信資料 → pydantic 或自己檢查；要轉 JSON 的暫時資料 → dict。
+
 **第 5 課 `search_policy` 確認題（原題，留作紀錄）**
 1. `_terms("取消訂閱")` 切出哪些詞？P3-1（標題「P3-1 取消訂閱」，內容有「取消」「訂閱」、沒有「消訂」）得幾分？
 2. `search_policy("P3-2 天氣")` 回傳哪些段落？為什麼？
